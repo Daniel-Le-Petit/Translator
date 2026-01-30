@@ -633,7 +633,7 @@ export function useSpeechRecognition(language: SpeechLanguage = 'auto') {
         recognitionRef.current.stop();
       } catch (err) {
         // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/3ca1e0f1-45a0-49e0-9ce7-9ab78536b3b3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useSpeechRecognition.ts:stopListening',message:'ERROR stopping recognitionRef',data:{error:err?.message || String(err)},timestamp:Date.now(),sessionId:'debug-session',runId:'run12',hypothesisId:'R'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7243/ingest/3ca1e0f1-45a0-49e0-9ce7-9ab78536b3b3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useSpeechRecognition.ts:stopListening',message:'ERROR stopping recognitionRef',data:{error:(err as Error)?.message || String(err)},timestamp:Date.now(),sessionId:'debug-session',runId:'run12',hypothesisId:'R'})}).catch(()=>{});
         // #endregion
         console.error('Erreur lors de l\'arrêt:', err);
       }
@@ -643,7 +643,7 @@ export function useSpeechRecognition(language: SpeechLanguage = 'auto') {
         recognitionFRRef.current.stop();
       } catch (e) {
         // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/3ca1e0f1-45a0-49e0-9ce7-9ab78536b3b3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useSpeechRecognition.ts:stopListening',message:'ERROR stopping recognitionFRRef',data:{error:e?.message || String(e)},timestamp:Date.now(),sessionId:'debug-session',runId:'run12',hypothesisId:'S'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7243/ingest/3ca1e0f1-45a0-49e0-9ce7-9ab78536b3b3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useSpeechRecognition.ts:stopListening',message:'ERROR stopping recognitionFRRef',data:{error:(e as Error)?.message || String(e)},timestamp:Date.now(),sessionId:'debug-session',runId:'run12',hypothesisId:'S'})}).catch(()=>{});
         // #endregion
       }
     }
