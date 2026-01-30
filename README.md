@@ -156,3 +156,4 @@ src/
 ### Langue
 - La reconnaissance vocale est configurée en français (fr-FR) par défaut
 - Peut être modifiée dans le code si nécessaire
+
