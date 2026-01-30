@@ -652,7 +652,7 @@ export function useSpeechRecognition(language: SpeechLanguage = 'auto') {
         recognitionENRef.current.stop();
       } catch (e) {
         // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/3ca1e0f1-45a0-49e0-9ce7-9ab78536b3b3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useSpeechRecognition.ts:stopListening',message:'ERROR stopping recognitionENRef',data:{error:e?.message || String(e)},timestamp:Date.now(),sessionId:'debug-session',runId:'run12',hypothesisId:'T'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7243/ingest/3ca1e0f1-45a0-49e0-9ce7-9ab78536b3b3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useSpeechRecognition.ts:stopListening',message:'ERROR stopping recognitionENRef',data:{error:(e as Error)?.message || String(e)},timestamp:Date.now(),sessionId:'debug-session',runId:'run12',hypothesisId:'T'})}).catch(()=>{});
         // #endregion
       }
     }

@@ -15,6 +15,13 @@ dist-ssr
 # Paquets système (trop volumineux pour GitHub)
 *.deb
 
+# Secrets (tokens, clés) — ne jamais committer
+token.txt
+**/token.txt
+*.token
+.env
+.env.local
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

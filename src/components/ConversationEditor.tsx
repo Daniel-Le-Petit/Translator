@@ -14,7 +14,7 @@ export function ConversationEditor({ conversationId, onSave, onNewConversation }
   const { conversation, participants, updateContent, saveConversation } = useConversation(conversationId);
   const [content, setContent] = useState('');
   const [currentParticipant, setCurrentParticipant] = useState<Participant | null>(null);
-  const [currentParticipantText, setCurrentParticipantText] = useState('');
+  const [, setCurrentParticipantText] = useState('');
   const [uiError, setUiError] = useState<string | null>(null);
   const [speechLanguage, setSpeechLanguage] = useState<'fr-FR' | 'en-US' | 'auto'>('auto');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
