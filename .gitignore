@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Paquets système (trop volumineux pour GitHub)
+*.deb
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

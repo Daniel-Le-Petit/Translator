@@ -68,6 +68,7 @@ export function useSpeechRecognition(language: SpeechLanguage = 'auto') {
   const finalTranscriptRef = useRef<string>('');
   const stuckCheckIntervalRef = useRef<number | null>(null);
   const autoRestartTimeoutRef = useRef<number | null>(null);
+  const networkRetryCountRef = useRef<number>(0);
   const isListeningRef = useRef<boolean>(false);
   const isStuckRef = useRef<boolean>(false);
   const languageScoresRef = useRef<{ fr: number; en: number }>({ fr: 0, en: 0 });
@@ -244,11 +245,30 @@ export function useSpeechRecognition(language: SpeechLanguage = 'auto') {
           setIsStuck(false);
         };
 
-        const handleError = (event: SpeechRecognitionErrorEvent, lang: string) => {
-          if (event.error === 'no-speech') {
+        const handleError = (event: SpeechRecognitionErrorEvent, _lang: string) => {
+          if (event.error === 'no-speech' || event.error === 'aborted') {
             return; // Ignorer
           }
-          console.error(`Erreur ${lang}:`, event.error);
+          console.error('Erreur reconnaissance vocale:', event.error, event.message);
+          let errorMessage = 'Erreur de reconnaissance vocale';
+          switch (event.error) {
+            case 'audio-capture':
+              errorMessage = 'Aucun microphone détecté. Vérifiez vos permissions.';
+              break;
+            case 'not-allowed':
+              errorMessage = "Permission d'accès au microphone refusée. Autorisez le micro dans les paramètres du navigateur.";
+              break;
+            case 'network':
+              errorMessage = 'Erreur réseau. Vérifiez votre connexion.';
+              break;
+            default:
+              errorMessage = `Erreur: ${event.error}. Réessayez.`;
+          }
+          setError(errorMessage);
+          isListeningRef.current = false;
+          setIsListening(false);
+          isStuckRef.current = true;
+          setIsStuck(true);
         };
 
         recognitionFR.onerror = (e) => handleError(e, 'FR');
@@ -295,7 +315,7 @@ export function useSpeechRecognition(language: SpeechLanguage = 'auto') {
                 isStuckRef.current = true;
                 setIsStuck(true);
               }
-            }, 100);
+            }, 300);
           }
         };
 
@@ -318,7 +338,7 @@ export function useSpeechRecognition(language: SpeechLanguage = 'auto') {
                 isStuckRef.current = true;
                 setIsStuck(true);
               }
-            }, 100);
+            }, 300);
           }
         };
 
@@ -421,6 +441,7 @@ export function useSpeechRecognition(language: SpeechLanguage = 'auto') {
                   recognitionRef.current.start();
                 } catch (e) {
                   console.error('Échec du redémarrage automatique:', e);
+                  setError('Reconnexion échouée. Vérifiez votre connexion et cliquez sur « Réessayer ».');
                   isStuckRef.current = true;
                   setIsStuck(true);
                   isListeningRef.current = false;
@@ -458,13 +479,14 @@ export function useSpeechRecognition(language: SpeechLanguage = 'auto') {
                   fetch('http://127.0.0.1:7243/ingest/3ca1e0f1-45a0-49e0-9ce7-9ab78536b3b3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useSpeechRecognition.ts:recognition.onend',message:'ERROR restarting',data:{error:e?.message || String(e),errorName:e?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run15',hypothesisId:'J'})}).catch(()=>{});
                   // #endregion
                   console.error('Échec du redémarrage automatique:', e);
+                  setError('Enregistrement bloqué. Cliquez sur « Réessayer ».');
                   isStuckRef.current = true;
                   setIsStuck(true);
                   isListeningRef.current = false;
                   setIsListening(false);
                 }
               }
-            }, 100);
+            }, 300);
           } else {
             // #region agent log
             fetch('http://127.0.0.1:7243/ingest/3ca1e0f1-45a0-49e0-9ce7-9ab78536b3b3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useSpeechRecognition.ts:recognition.onend',message:'Not restarting - setting isListening to false',data:{shouldRestart:shouldRestart},timestamp:Date.now(),sessionId:'debug-session',runId:'run15',hypothesisId:'K'})}).catch(()=>{});
@@ -521,9 +543,20 @@ export function useSpeechRecognition(language: SpeechLanguage = 'auto') {
 
     stuckCheckIntervalRef.current = window.setInterval(() => {
       const timeSinceLastActivity = Date.now() - lastActivityTime;
-      if (timeSinceLastActivity > 30000) {
-        setIsStuck(true);
-        setError('L\'enregistrement semble bloqué. Aucune transcription depuis 30 secondes.');
+      if (timeSinceLastActivity > 60000) {
+        const toStart = (language === 'auto' ? recognitionFRRef.current : recognitionRef.current);
+        if (toStart) {
+          try {
+            toStart.start();
+            setLastActivityTime(Date.now());
+          } catch (_e) {
+            setIsStuck(true);
+            setError('L\'enregistrement semble bloqué. Cliquez sur « Réessayer ».');
+          }
+        } else {
+          setIsStuck(true);
+          setError('L\'enregistrement semble bloqué. Cliquez sur « Réessayer ».');
+        }
       }
     }, 5000);
 
@@ -533,7 +566,7 @@ export function useSpeechRecognition(language: SpeechLanguage = 'auto') {
         stuckCheckIntervalRef.current = null;
       }
     };
-  }, [isListening, lastActivityTime]);
+  }, [isListening, lastActivityTime, language]);
 
   const startListening = useCallback(() => {
     // #region agent log
@@ -549,17 +582,17 @@ export function useSpeechRecognition(language: SpeechLanguage = 'auto') {
     }
 
     try {
+      networkRetryCountRef.current = 0;
       isStuckRef.current = false;
       setIsStuck(false);
       languageScoresRef.current = { fr: 0, en: 0 };
       
-      if (language === 'auto' && recognitionFRRef.current && recognitionENRef.current) {
+      if (language === 'auto' && recognitionFRRef.current) {
         // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/3ca1e0f1-45a0-49e0-9ce7-9ab78536b3b3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useSpeechRecognition.ts:startListening',message:'Starting auto mode (FR+EN)',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run12',hypothesisId:'J'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7243/ingest/3ca1e0f1-45a0-49e0-9ce7-9ab78536b3b3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useSpeechRecognition.ts:startListening',message:'Starting auto mode (FR only - one instance)',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run12',hypothesisId:'J'})}).catch(()=>{});
         // #endregion
-        // Démarrer les deux reconnaissances en parallèle
+        // Une seule instance : Chrome ne supporte pas deux SpeechRecognition en parallèle.
         recognitionFRRef.current.start();
-        recognitionENRef.current.start();
       } else if (recognitionRef.current) {
         // #region agent log
         fetch('http://127.0.0.1:7243/ingest/3ca1e0f1-45a0-49e0-9ce7-9ab78536b3b3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useSpeechRecognition.ts:startListening',message:'Starting fixed language mode',data:{language:language},timestamp:Date.now(),sessionId:'debug-session',runId:'run12',hypothesisId:'K'})}).catch(()=>{});

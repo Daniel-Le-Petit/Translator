@@ -1,0 +1,15 @@
+# Render.com Blueprint - Static Site
+# https://render.com/docs/blueprint-spec
+# Connectez le repo GitHub (Daniel-Le-Petit/Translator) dans Render pour déployer.
+
+services:
+  - type: web
+    name: translator
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    # SPA : toutes les routes servent index.html
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
